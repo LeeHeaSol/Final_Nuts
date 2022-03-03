@@ -1,39 +1,96 @@
 package com.kh.nuts;
 
-import java.text.DateFormat;
-import java.util.Date;
-import java.util.Locale;
+import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
-/**
- * Handles requests for the application home page.
- */
+import com.kh.nuts.common.util.PageInfo;
+import com.kh.nuts.hospital.service.HospitalService;
+import com.kh.nuts.hospital.vo.Hospital;
+import com.kh.nuts.hotdog.service.HotdogService;
+import com.kh.nuts.hotdog.vo.Hotdog;
+import com.kh.nuts.notice.service.NoticeService;
+import com.kh.nuts.notice.vo.Notice;
+import com.kh.nuts.park.service.ParkService;
+import com.kh.nuts.shop.service.ShopService;
+import com.kh.nuts.shop.vo.Shop;
+import com.kh.nuts.walking.service.WalkingService;
+import com.kh.nuts.walking.vo.WalkingParty;
+
 @Controller
 public class HomeController {
 	
-	private static final Logger logger = LoggerFactory.getLogger(HomeController.class);
+	@Autowired
+	WalkingService wpService;
 	
-	/**
-	 * Simply selects the home view to render by returning its name.
-	 */
-	@RequestMapping(value = "/", method = RequestMethod.GET)
-	public String home(Locale locale, Model model) {
-		logger.info("Welcome home! The client locale is {}.", locale);
+	@Autowired
+	ParkService parkService;
+	
+	@Autowired
+	HospitalService hpService;
+	
+	@Autowired
+	ShopService shopService;
+	
+	@Autowired
+	NoticeService noticeService;
+	
+	@Autowired
+	HotdogService hotdogService;
+	
+	@RequestMapping("/")
+	public String main(Model model) {
 		
-		Date date = new Date();
-		DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG, locale);
+		List<Hospital> hospList = null;
+		List<Notice> noticeList = null;
+		List<Hotdog> hotdogList = null;
+		int count = hpService.selectCountbyHospital("", "");
+		System.out.println(count);
+		PageInfo pageInfo = new PageInfo(1, 1, count, 6);
+		hospList = hpService.selectHospitalBySearch("", "", pageInfo);
+		model.addAttribute("hospList", hospList);
+		model.addAttribute("pageInfo",pageInfo);
 		
-		String formattedDate = dateFormat.format(date);
 		
-		model.addAttribute("serverTime", formattedDate );
+		List<Shop> shopList = shopService.shopListByMain();
+		model.addAttribute("shopList", shopList);
 		
-		return "home";
+		pageInfo = new PageInfo(1, 1, count, 5);
+		
+		noticeList = noticeService.getNoticeList(pageInfo, null, null);
+		System.out.println(noticeList);
+		model.addAttribute("noticeList", noticeList);
+		
+		hotdogList = hotdogService.selectHotdogList(pageInfo, "", "");
+		model.addAttribute("hotdogList", hotdogList);
+		
+		
+		return "home/homeView";
 	}
 	
+	@RequestMapping("home/wpAjax")
+	public String wpAjax(Model model, String lat, String lon) {
+		
+		List<WalkingParty> wpList = null;
+		String reqStr = null;
+		try {
+			reqStr = wpService.selectReqNo();
+			wpList = wpService.selectAll(lat, lon, "");
+			model.addAttribute("myLat",lat);
+			model.addAttribute("myLng",lon);
+			model.addAttribute("wpList",wpList);
+			model.addAttribute("reqStr",reqStr);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		
+		return "home/wpAjax";
+	}
+	
+
 }
